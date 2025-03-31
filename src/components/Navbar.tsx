@@ -14,6 +14,7 @@ import { Moon, Sun, Upload, FolderPlus, Settings, LogOut, Menu, X, Music } from 
 import { motion } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface NavbarProps {
   onToggleSidebar?: () => void;
@@ -25,6 +26,7 @@ const Navbar = ({ onToggleSidebar, onToggleMusicPlayer, isMusicPlayerOpen }: Nav
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const isMobile = useIsMobile();
+  const { user, logout } = useAuth();
   
   const toggleDarkMode = () => {
     const newMode = !isDarkMode;
@@ -112,12 +114,13 @@ const Navbar = ({ onToggleSidebar, onToggleMusicPlayer, isMusicPlayerOpen }: Nav
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-                  <AvatarFallback>UN</AvatarFallback>
+                  <AvatarFallback>{user?.email.substring(0, 2).toUpperCase() || 'UN'}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="glass">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              {user?.email && <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{user.email}</DropdownMenuLabel>}
               <DropdownMenuSeparator />
               <DropdownMenuItem>Profile</DropdownMenuItem>
               <DropdownMenuItem>My Gallery</DropdownMenuItem>
@@ -126,7 +129,7 @@ const Navbar = ({ onToggleSidebar, onToggleMusicPlayer, isMusicPlayerOpen }: Nav
                 <span>Settings</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={logout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
               </DropdownMenuItem>
