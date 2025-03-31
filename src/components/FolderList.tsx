@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Folder, ChevronRight, ChevronDown, Plus, Image, Heart } from "lucide-react";
+import { Folder, ChevronRight, ChevronDown, Plus, Image, Heart, Upload } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
