@@ -7,96 +7,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import PhotoCard from "./PhotoCard";
 import * as THREE from "three";
-
-// Sample photo data
-const samplePhotos = [
-  {
-    id: "1",
-    src: "https://images.unsplash.com/photo-1499856871958-5b9357976b82",
-    title: "Sunset at the Beach",
-    description: "Beautiful sunset over the ocean",
-    location: "Malibu, CA",
-    likes: 124,
-    comments: 23,
-    user: {
-      name: "Jessica Parker",
-      avatar: "https://i.pravatar.cc/150?img=1",
-    },
-    date: "2 days ago",
-    isLiked: true,
-  },
-  {
-    id: "2",
-    src: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4",
-    title: "Mountain Range",
-    description: "Epic mountain landscape during sunrise",
-    location: "Swiss Alps",
-    likes: 98,
-    comments: 12,
-    user: {
-      name: "Alex Johnson",
-      avatar: "https://i.pravatar.cc/150?img=2",
-    },
-    date: "1 week ago",
-  },
-  {
-    id: "3",
-    src: "https://images.unsplash.com/photo-1504214208698-ea1916a2195a",
-    title: "Urban Adventure",
-    description: "Cityscape from the rooftop",
-    location: "New York, NY",
-    likes: 156,
-    comments: 31,
-    user: {
-      name: "Michael Wong",
-      avatar: "https://i.pravatar.cc/150?img=3",
-    },
-    date: "3 days ago",
-  },
-  {
-    id: "4",
-    src: "https://images.unsplash.com/photo-1454391304352-2bf4678b1a7a",
-    title: "Forest Exploration",
-    description: "Misty forest in the early morning",
-    location: "Redwood Forest, CA",
-    likes: 84,
-    comments: 8,
-    user: {
-      name: "Emma Wilson",
-      avatar: "https://i.pravatar.cc/150?img=4",
-    },
-    date: "5 days ago",
-    isLiked: true,
-  },
-  {
-    id: "5",
-    src: "https://images.unsplash.com/photo-1516483638261-f4dbaf036963",
-    title: "Italian Adventure",
-    description: "Beautiful view of the coast",
-    location: "Cinque Terre, Italy",
-    likes: 215,
-    comments: 42,
-    user: {
-      name: "David Kim",
-      avatar: "https://i.pravatar.cc/150?img=5",
-    },
-    date: "1 day ago",
-  },
-  {
-    id: "6",
-    src: "https://images.unsplash.com/photo-1505159940484-eb2b9f2588e2",
-    title: "Desert Oasis",
-    description: "Stunning rock formations in the desert",
-    location: "Antelope Canyon, AZ",
-    likes: 176,
-    comments: 19,
-    user: {
-      name: "Sophia Martinez",
-      avatar: "https://i.pravatar.cc/150?img=6",
-    },
-    date: "4 days ago",
-  },
-];
+import { usePhotos, EnhancedPhotoType } from "@/hooks/use-photos";
+import { useToast } from "@/hooks/use-toast";
 
 // Frame component for 3D rendering of photos
 const Frame = ({ position, rotation, url, onClick }: any) => {
@@ -134,7 +46,7 @@ const Frame = ({ position, rotation, url, onClick }: any) => {
 };
 
 // Main 3D Scene component
-const Scene = ({ photos, onSelectPhoto }: { photos: any[], onSelectPhoto: (id: string) => void }) => {
+const Scene = ({ photos, onSelectPhoto }: { photos: EnhancedPhotoType[], onSelectPhoto: (id: string) => void }) => {
   return (
     <>
       <PerspectiveCamera makeDefault position={[0, 0, 5]} />
@@ -163,7 +75,7 @@ const Scene = ({ photos, onSelectPhoto }: { photos: any[], onSelectPhoto: (id: s
             key={photo.id}
             position={[x, 0, z]}
             rotation={[0, -theta + Math.PI, 0]}
-            url={photo.src}
+            url={photo.image_url}
             onClick={() => onSelectPhoto(photo.id)}
           />
         );
@@ -173,7 +85,7 @@ const Scene = ({ photos, onSelectPhoto }: { photos: any[], onSelectPhoto: (id: s
 };
 
 // Grid view component
-const GridView = ({ photos }: { photos: any[] }) => {
+const GridView = ({ photos }: { photos: EnhancedPhotoType[] }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 p-4">
       {photos.map((photo, index) => (
@@ -184,7 +96,7 @@ const GridView = ({ photos }: { photos: any[] }) => {
 };
 
 // Stack view component
-const StackView = ({ photos }: { photos: any[] }) => {
+const StackView = ({ photos }: { photos: EnhancedPhotoType[] }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   
   const nextPhoto = () => {
@@ -233,25 +145,59 @@ const StackView = ({ photos }: { photos: any[] }) => {
 // Main PhotoGallery component
 interface PhotoGalleryProps {
   viewMode: "grid" | "stack" | "carousel";
+  folderId?: string;
 }
 
-const PhotoGallery: React.FC<PhotoGalleryProps> = ({ viewMode }) => {
+const PhotoGallery: React.FC<PhotoGalleryProps> = ({ viewMode, folderId }) => {
+  const { data: photos = [], isLoading, error } = usePhotos(folderId);
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
+  const { toast } = useToast();
+  
+  // Show error toast if there's an issue loading photos
+  if (error) {
+    toast({
+      title: "Error loading photos",
+      description: "Please try again later.",
+      variant: "destructive"
+    });
+  }
   
   const handleSelectPhoto = (id: string) => {
     setSelectedPhotoId(id);
   };
   
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-10 w-10 border-t-2 border-primary rounded-full animate-spin mx-auto mb-4"></div>
+          <p>Loading photos...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show empty state if no photos
+  if (photos.length === 0) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center p-4">
+        <h3 className="text-2xl font-bold mb-2">No photos found</h3>
+        <p className="text-muted-foreground mb-6">Upload some photos to get started!</p>
+      </div>
+    );
+  }
+  
   return (
     <div className="w-full h-full">
       {viewMode === "grid" && (
         <ScrollArea className="w-full h-full">
-          <GridView photos={samplePhotos} />
+          <GridView photos={photos} />
         </ScrollArea>
       )}
       
       {viewMode === "stack" && (
-        <StackView photos={samplePhotos} />
+        <StackView photos={photos} />
       )}
       
       {viewMode === "carousel" && (
@@ -259,7 +205,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({ viewMode }) => {
           <Canvas shadows>
             <Suspense fallback={null}>
               <Scene 
-                photos={samplePhotos} 
+                photos={photos} 
                 onSelectPhoto={handleSelectPhoto}
               />
             </Suspense>
@@ -279,7 +225,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({ viewMode }) => {
                 onClick={(e) => e.stopPropagation()}
               >
                 <PhotoCard 
-                  photo={samplePhotos.find(p => p.id === selectedPhotoId) || samplePhotos[0]} 
+                  photo={photos.find(p => p.id === selectedPhotoId) || photos[0]} 
                   index={0} 
                 />
               </motion.div>

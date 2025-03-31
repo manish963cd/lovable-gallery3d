@@ -13,23 +13,13 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
+import { EnhancedPhotoType } from "@/hooks/use-photos";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface PhotoCardProps {
-  photo: {
-    id: string;
-    src: string;
-    title: string;
-    description?: string;
-    location?: string;
-    likes: number;
-    comments: number;
-    user: {
-      name: string;
-      avatar?: string;
-    };
-    date: string;
-    isLiked?: boolean;
-  };
+  photo: EnhancedPhotoType;
   index: number;
 }
 
@@ -37,14 +27,70 @@ const PhotoCard: React.FC<PhotoCardProps> = ({ photo, index }) => {
   const [isLiked, setIsLiked] = useState(photo.isLiked || false);
   const [likeCount, setLikeCount] = useState(photo.likes);
   const [isHovered, setIsHovered] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const toggleLike = () => {
-    if (isLiked) {
-      setLikeCount(likeCount - 1);
-    } else {
-      setLikeCount(likeCount + 1);
+  const toggleLike = async () => {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to like photos",
+      });
+      return;
     }
-    setIsLiked(!isLiked);
+
+    try {
+      if (isLiked) {
+        // Unlike photo
+        const { error } = await supabase
+          .from('likes')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('photo_id', photo.id);
+          
+        if (error) throw error;
+        
+        setLikeCount(likeCount - 1);
+        setIsLiked(false);
+        
+        // Update photo likes count
+        await supabase
+          .from('photos')
+          .update({ likes: likeCount - 1 })
+          .eq('id', photo.id);
+      } else {
+        // Like photo
+        const { error } = await supabase
+          .from('likes')
+          .insert({ user_id: user.id, photo_id: photo.id });
+          
+        if (error) throw error;
+        
+        setLikeCount(likeCount + 1);
+        setIsLiked(true);
+        
+        // Update photo likes count
+        await supabase
+          .from('photos')
+          .update({ likes: likeCount + 1 })
+          .eq('id', photo.id);
+      }
+      
+      // Invalidate query to refresh data
+      queryClient.invalidateQueries({ queryKey: ['photos'] });
+      queryClient.invalidateQueries({ queryKey: ['photo', photo.id] });
+      
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update like status",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -60,7 +106,7 @@ const PhotoCard: React.FC<PhotoCardProps> = ({ photo, index }) => {
         {/* Image */}
         <div className="relative overflow-hidden aspect-square">
           <motion.img
-            src={photo.src}
+            src={photo.image_url}
             alt={photo.title}
             className="w-full h-full object-cover transition-transform"
             animate={{
@@ -89,7 +135,7 @@ const PhotoCard: React.FC<PhotoCardProps> = ({ photo, index }) => {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-1">
                 <Avatar className="h-6 w-6">
-                  <AvatarImage src={photo.user.avatar} alt={photo.user.name} />
+                  <AvatarImage src={photo.user.avatar || undefined} alt={photo.user.name} />
                   <AvatarFallback className="text-xs">{photo.user.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <span className="text-xs text-white/80">{photo.user.name}</span>

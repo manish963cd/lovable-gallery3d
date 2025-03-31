@@ -7,10 +7,13 @@ import FolderList from "@/components/FolderList";
 import PhotoGallery from "@/components/PhotoGallery";
 import GalleryControls from "@/components/GalleryControls";
 import MusicPlayer from "@/components/MusicPlayer";
+import { useSearchParams } from "react-router-dom";
 
 const Index = () => {
   const [viewMode, setViewMode] = useState<"grid" | "stack" | "carousel">("grid");
   const [isLoading, setIsLoading] = useState(true);
+  const [searchParams] = useSearchParams();
+  const folderId = searchParams.get('folder') || undefined;
 
   useEffect(() => {
     // Simulate loading resources
@@ -77,7 +80,7 @@ const Index = () => {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="flex-1 h-full"
         >
-          <PhotoGallery viewMode={viewMode} />
+          <PhotoGallery viewMode={viewMode} folderId={folderId} />
           <GalleryControls viewMode={viewMode} onChangeViewMode={setViewMode} />
           <MusicPlayer />
         </motion.main>
