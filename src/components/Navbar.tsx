@@ -10,12 +10,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { Moon, Sun, Upload, FolderPlus, Settings, LogOut, Menu, X } from "lucide-react";
+import { Moon, Sun, Upload, FolderPlus, Settings, LogOut, Menu, X, Music } from "lucide-react";
 import { motion } from "framer-motion";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
-const Navbar = () => {
+interface NavbarProps {
+  onToggleSidebar?: () => void;
+  onToggleMusicPlayer?: () => void;
+  isMusicPlayerOpen?: boolean;
+}
+
+const Navbar = ({ onToggleSidebar, onToggleMusicPlayer, isMusicPlayerOpen }: NavbarProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const isMobile = useIsMobile();
   
   const toggleDarkMode = () => {
     const newMode = !isDarkMode;
@@ -31,7 +40,19 @@ const Navbar = () => {
       transition={{ duration: 0.5 }}
     >
       <div className="container mx-auto flex items-center justify-between">
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-4">
+          {/* Sidebar toggle for desktop */}
+          {!isMobile && onToggleSidebar && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={onToggleSidebar}
+              className="mr-2"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          )}
+          
           <motion.div
             className="text-2xl font-bold text-gallery-primary"
             initial={{ opacity: 0 }}
@@ -52,9 +73,11 @@ const Navbar = () => {
           </Button>
         </div>
         
-        <div className={`fixed md:static top-16 right-0 left-0 bg-background/95 md:bg-transparent backdrop-blur-md md:backdrop-blur-0 p-4 md:p-0 transition-all duration-300 ease-in-out ${
-          isMenuOpen ? "translate-y-0 opacity-100" : "-translate-y-full md:translate-y-0 opacity-0 md:opacity-100 pointer-events-none md:pointer-events-auto"
-        } md:flex md:items-center md:space-x-4`}>
+        <div className={cn(
+          "fixed md:static top-16 right-0 left-0 bg-background/95 md:bg-transparent backdrop-blur-md md:backdrop-blur-0 p-4 md:p-0 transition-all duration-300 ease-in-out",
+          isMenuOpen ? "translate-y-0 opacity-100" : "-translate-y-full md:translate-y-0 opacity-0 md:opacity-100 pointer-events-none md:pointer-events-auto",
+          "md:flex md:items-center md:space-x-4"
+        )}>
           <Button variant="ghost" className="flex items-center space-x-2">
             <Upload size={18} />
             <span className="md:hidden lg:inline">Upload</span>
@@ -63,6 +86,16 @@ const Navbar = () => {
           <Button variant="ghost" className="flex items-center space-x-2">
             <FolderPlus size={18} />
             <span className="md:hidden lg:inline">New Folder</span>
+          </Button>
+          
+          {/* Music player toggle button */}
+          <Button 
+            variant={isMusicPlayerOpen ? "secondary" : "ghost"}
+            size="icon"
+            onClick={onToggleMusicPlayer}
+            className="flex items-center"
+          >
+            <Music size={18} />
           </Button>
           
           <Button
